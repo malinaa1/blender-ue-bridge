@@ -299,6 +299,15 @@ def build_scene(blender):
                              glow_color=[0.2, 0.7, 1.0], name="Arena")
     step(blender, "悬浮竞技场 (金属+发光环)", r)
 
+    # 海龟站到平台上 (平台顶面 z=0.4, 海龟底部 z≈0.125 → 整体抬升 0.4)
+    print("  [对齐] 海龟站上平台...")
+    for obj_name in ["Turtle_Mesh", "Eye_L", "Eye_R", "TurtleRig"]:
+        g = blender.get_transform(obj_name)
+        if g.get("status") == "success":
+            loc = g["result"]["location"]
+            blender.set_transform(obj_name, location=[loc[0], loc[1], loc[2] + 0.4])
+    print("  ✅ 海龟已站上平台")
+
     # 漂浮水泡 (上升动画)
     r = blender.create_bubbles(count=25, area=[3, 3, 2.5], size=[0.04, 0.12],
                                name="Bubble", animate=True, frames=48)

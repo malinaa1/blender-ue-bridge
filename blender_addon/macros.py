@@ -1202,7 +1202,7 @@ def create_turtle_shell(params):
          roughness=(mat or {}).get("roughness", 0.4),
          metallic=(mat or {}).get("metallic", 0.0))
 
-    return _result(name, "scales", len(top_faces))
+    return _result(name, scales=len(top_faces))
 
 
 def create_cute_eye(params):

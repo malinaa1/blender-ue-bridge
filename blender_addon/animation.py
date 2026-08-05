@@ -276,7 +276,7 @@ def setup_rigid_body_world(params):
 # ─────────────────────────────────────────────────────────────
 
 def render_animation(params):
-    """渲染动画帧序列 (大操作, 专用线程)
+    """渲染动画帧序列 — 必须在主线程执行 (bpy.ops.render 非主线程会崩溃)
 
     params:
         output_dir: 输出目录 (PNG)
@@ -286,7 +286,8 @@ def render_animation(params):
         samples: cycles 采样数
     """
     import os
-    scene = bpy.context.scene
+    # 主线程执行 (队列模式), 用数据 API 避免 context 依赖
+    scene = bpy.data.scenes[0]
     output_dir = params.get("output_dir", "")
     if not output_dir:
         raise ValueError("需要 output_dir")

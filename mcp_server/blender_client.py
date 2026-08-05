@@ -62,10 +62,12 @@ class BlenderClient:
         return json.loads(buf.decode("utf-8"))
 
     def send_command(self, command_type: str, params: dict | None = None,
-                     large: bool = False, retries: int = 1) -> dict:
+                     large: bool = False, retries: int = 1,
+                     poll_timeout: float = 60.0) -> dict:
         """发送命令并等待结果
 
-        large=True 时直接回写; 否则入队后轮询结果。
+        large=True 时直接回写 (专用线程, 快速操作);
+        否则入队后轮询结果 (主线程, 渲染等长任务用 poll_timeout 加大超时)。
         连接失败重试 retries 次 (addon 可能刚启动)。
         """
         last_error = None
@@ -81,7 +83,7 @@ class BlenderClient:
                 resp = self._recv(sock)
                 if resp.get("status") == "queued":
                     cmd_id = resp.get("result", {}).get("id")
-                    return self._poll(cmd_id)
+                    return self._poll(cmd_id, max_wait=poll_timeout)
                 return resp
             except (ConnectionRefusedError, ConnectionError, OSError) as e:
                 last_error = e
@@ -538,6 +540,7 @@ class BlenderClient:
     def render_animation(self, output_dir: str, start: int = None, end: int = None,
                          engine: str = "eevee", resolution_x: int = 1280,
                          resolution_y: int = 720, samples: int = 64) -> dict:
+        """渲染动画帧序列 — 主线程队列执行 (bpy.ops.render 非主线程会崩溃)"""
         params = {"output_dir": output_dir, "engine": engine,
                   "resolution_x": resolution_x, "resolution_y": resolution_y,
                   "samples": samples}
@@ -545,7 +548,8 @@ class BlenderClient:
             params["start"] = start
         if end is not None:
             params["end"] = end
-        return self.send_command("render_animation", params, large=True)
+        return self.send_command("render_animation", params, large=False,
+                                 poll_timeout=600.0)
 
     # ── 相机运镜宏 ──────────────────────────────────────────
 
