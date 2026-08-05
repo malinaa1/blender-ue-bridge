@@ -103,6 +103,12 @@ def _result(name, **extra):
     return r
 
 
+def _select_only(obj):
+    bpy.ops.object.select_all(action="DESELECT")
+    obj.select_set(True)
+    bpy.context.view_layer.objects.active = obj
+
+
 # ─────────────────────────────────────────────────────────────
 # 墙壁 — 带真实门窗洞, 全四边面拓扑
 # ─────────────────────────────────────────────────────────────
@@ -1118,6 +1124,260 @@ def follow_path(params):
 
     set_frame_range({"start": start_frame, "end": start_frame + frames})
     return {"object": obj.name, "path": path.name, "frames": frames}
+
+
+# ─────────────────────────────────────────────────────────────
+# 角色部件宏 (Q萌风格)
+# ─────────────────────────────────────────────────────────────
+
+def create_turtle_shell(params):
+    """六边形龟壳: 半球 + 鳞片凸块 + 裙边
+
+    params:
+        radius (壳半径, 默认 0.8), height (椭圆高度), name, material
+    """
+    import bmesh as _bm
+    radius = params.get("radius", 0.8)
+    height = params.get("height", 0.55)
+    name = params.get("name", "Shell")
+
+    # UV 球, 椭圆化, 长轴沿 X
+    bpy.ops.mesh.primitive_uv_sphere_add(segments=16, ring_count=10, radius=radius,
+                                         location=(0, 0, 0))
+    shell = bpy.context.active_object
+    shell.name = name
+    shell.scale = (1.15, 1.0, height / radius)
+    bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+
+    # bmesh: 删下半球, 顶面鳞片凸起, 底部裙边
+    _select_only(shell)
+    bpy.ops.object.mode_set(mode="EDIT")
+    bm = _bm.from_edit_mesh(shell.data)
+    bm.normal_update()
+
+    # 1. 删除 z<0 的顶点 (留半球)
+    remove = [v for v in bm.verts if v.co.z < 0.001]
+    _bm.ops.delete(bm, geom=remove, context="VERTS")
+    bm.verts.ensure_lookup_table()
+
+    # 2. 顶面鳞片: 选 z > 40% 高的面, inset + 两次挤出 (凸块)
+    max_z = max(v.co.z for v in bm.verts)
+    top_faces = [f for f in bm.faces if f.calc_center_median().z > max_z * 0.4]
+    if top_faces:
+        _bm.ops.inset_region(bm, faces=top_faces, thickness=0.03, depth=0,
+                             use_individual=True)
+        _bm.ops.inset_region(bm, faces=top_faces, thickness=0.012, depth=0.02,
+                             use_individual=True)
+        for f in top_faces:
+            f.normal_update()
+
+    # 3. 底部裙边: 选边缘环, 挤出外扩
+    boundary = [e for e in bm.edges if e.is_boundary]
+    if boundary:
+        r = _bm.ops.extrude_edge_only(bm, edges=boundary)
+        new_edges = [e for e in r["edges"]]
+        for e in new_edges:
+            mid = (e.verts[0].co + e.verts[1].co) / 2
+            for v in e.verts:
+                v.co = v.co * 1.15 + (0, 0, 0.02)
+
+    bm.normal_update()
+    _bm.update_edit_mesh(shell.data)
+    bpy.ops.object.mode_set(mode="OBJECT")
+
+    # 4. 圆润处理
+    _bevel(shell, width=0.015, segments=1)
+    subsurf = shell.modifiers.new(name="Subsurf", type="SUBSURF")
+    subsurf.levels = 2
+    subsurf.render_levels = 2
+    _apply_modifiers(shell)
+
+    mat = params.get("material")
+    _pbr(shell, (mat or {}).get("name", "M_Shell_Green"),
+         base=(mat or {}).get("base_color", [0.15, 0.45, 0.2, 1.0]),
+         roughness=(mat or {}).get("roughness", 0.4),
+         metallic=(mat or {}).get("metallic", 0.0))
+
+    return _result(name, "scales", len(top_faces))
+
+
+def create_cute_eye(params):
+    """Q萌大眼睛: 白眼球 + 大瞳孔 + 高光 (自带发光)
+
+    params:
+        location [x,y,z], scale, name, look_at (可选: 注视对象)
+    """
+    loc = params.get("location", [0, 0, 0])
+    scale = params.get("scale", 1.0)
+    name = params.get("name", "Eye")
+
+    # 白眼球 (椭球)
+    bpy.ops.mesh.primitive_uv_sphere_add(radius=0.16 * scale, location=tuple(loc))
+    eye = bpy.context.active_object
+    eye.name = name
+    eye.scale = (1.0, 1.0, 1.15)
+    bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+    _pbr(eye, "M_Eye_White", base=(0.98, 0.98, 1.0, 1.0), roughness=0.1)
+
+    # 瞳孔 (深色小球, 突出前方)
+    bpy.ops.mesh.primitive_uv_sphere_add(radius=0.095 * scale,
+        location=(loc[0] + 0.09 * scale, loc[1], loc[2] - 0.02 * scale))
+    pupil = bpy.context.active_object
+    pupil.name = f"{name}_Pupil"
+    pupil.scale = (0.7, 0.75, 0.75)
+    bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+    _pbr(pupil, "M_Eye_Pupil", base=(0.08, 0.08, 0.1, 1.0), roughness=0.05,
+         emission=(0.05, 0.05, 0.08), emission_strength=0.5)
+
+    # 高光 (小发光点)
+    bpy.ops.mesh.primitive_uv_sphere_add(radius=0.028 * scale,
+        location=(loc[0] + 0.14 * scale, loc[1] + 0.045 * scale, loc[2] + 0.075 * scale))
+    glint = bpy.context.active_object
+    glint.name = f"{name}_Glint"
+    _pbr(glint, "M_Eye_Glint", base=(1.0, 1.0, 1.0, 1.0), roughness=0.0,
+         emission=(1.0, 1.0, 1.0), emission_strength=2.0)
+
+    # 合并
+    bpy.ops.object.select_all(action="SELECT")
+    bpy.context.view_layer.objects.active = eye
+    bpy.ops.object.join()
+    eye.name = name
+
+    look = params.get("look_at")
+    if look and look in bpy.data.objects:
+        con = eye.constraints.new(type="TRACK_TO")
+        con.target = bpy.data.objects[look]
+        con.track_axis = "TRACK_NEGATIVE_Z"
+        con.up_axis = "UP_Y"
+
+    return _result(name)
+
+
+# ─────────────────────────────────────────────────────────────
+# 场景宏 (海底竞技场)
+# ─────────────────────────────────────────────────────────────
+
+def create_arena(params):
+    """悬浮环形战斗平台: 金属圆盘 + 发光边缘环 + 支撑柱
+
+    params:
+        radius, thickness, height (离地高度), glow_color, name
+    """
+    radius = params.get("radius", 4.0)
+    thickness = params.get("thickness", 0.3)
+    height = params.get("height", 0.2)
+    name = params.get("name", "Arena")
+    glow = params.get("glow_color", [0.2, 0.6, 1.0])
+
+    # 平台 (圆柱)
+    bpy.ops.mesh.primitive_cylinder_add(vertices=48, radius=radius, depth=thickness,
+                                        location=(0, 0, thickness / 2 + height))
+    plate = bpy.context.active_object
+    plate.name = f"{name}_Plate"
+    _pbr(plate, "M_Arena_Metal", base=(0.35, 0.38, 0.42, 1.0), roughness=0.35,
+         metallic=0.8)
+
+    # 发光边缘环 (扁环)
+    bpy.ops.mesh.primitive_torus_add(major_radius=radius + 0.05, minor_radius=0.06,
+                                     location=(0, 0, thickness + height + 0.02))
+    ring = bpy.context.active_object
+    ring.name = f"{name}_GlowRing"
+    ring.scale = (1.0, 1.0, 0.4)
+    bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+    _pbr(ring, "M_Arena_Glow", base=(*glow, 1.0), roughness=0.1, metallic=0.2,
+         emission=tuple(glow), emission_strength=3.0)
+
+    # 支撑柱 ×4
+    for i in range(4):
+        import math as _m
+        a = i * _m.pi / 2 + _m.pi / 4
+        x, y = _m.cos(a) * radius * 0.6, _m.sin(a) * radius * 0.6
+        bpy.ops.mesh.primitive_cylinder_add(vertices=12, radius=0.12,
+                                            depth=height + thickness,
+                                            location=(x, y, (height + thickness) / 2))
+        col = bpy.context.active_object
+        col.name = f"{name}_Pillar_{i}"
+        _pbr(col, "M_Arena_Metal", base=(0.3, 0.32, 0.36, 1.0), roughness=0.4,
+             metallic=0.8)
+
+    return {"name": name, "radius": radius, "parts": 6}
+
+
+def create_bubbles(params):
+    """漂浮水泡: 半透明小球群 + 可选上升动画
+
+    params:
+        count, area (散布范围 [x,y,z]), size (半径范围), name,
+        animate (是否上升动画), frames (动画帧数)
+    """
+    import random
+    count = int(params.get("count", 20))
+    area = params.get("area", [4, 4, 3])
+    size = params.get("size", [0.05, 0.15])
+    name = params.get("name", "Bubbles")
+    random.seed(params.get("seed", 7))
+
+    created = []
+    for i in range(count):
+        r = random.uniform(*size)
+        loc = (random.uniform(-area[0], area[0]),
+               random.uniform(-area[1], area[1]),
+               random.uniform(0, area[2]))
+        bpy.ops.mesh.primitive_uv_sphere_add(radius=r, location=loc)
+        b = bpy.context.active_object
+        b.name = f"{name}_{i:03d}"
+        _pbr(b, "M_Bubble", base=(0.7, 0.85, 1.0, 0.5), roughness=0.05,
+             emission=(0.4, 0.6, 0.9), emission_strength=0.4)
+        created.append(b.name)
+
+    if params.get("animate"):
+        from .animation import set_frame_range, set_frame
+        frames = int(params.get("frames", 120))
+        for i, bname in enumerate(created):
+            b = bpy.data.objects.get(bname)
+            if not b:
+                continue
+            start = int(params.get("start_frame", 0))
+            b.keyframe_insert(data_path="location", frame=start)
+            b.location.z += random.uniform(1.5, 3.5)
+            b.location.x += random.uniform(-0.5, 0.5)
+            b.keyframe_insert(data_path="location", frame=start + frames)
+        set_frame_range({"start": 0, "end": start + frames})
+
+    return {"count": len(created), "name": name}
+
+
+def setup_compositor_glow(params):
+    """合成辉光: 渲染后处理 (Glare 节点 + 色彩调整)
+
+    params:
+        threshold (辉光阈值, 0-1), size (强度), enabled
+    """
+    scene = bpy.context.scene
+    scene.use_nodes = True
+    tree = scene.node_tree
+    tree.nodes.clear()
+
+    # 节点: Render Layers → Glare → Composite
+    rl = tree.nodes.new("CompositorNodeRLayers")
+    rl.location = (0, 0)
+
+    glare = tree.nodes.new("CompositorNodeGlare")
+    glare.location = (300, 0)
+    glare.glare_type = "FOG_GLOW"
+    glare.quality = "HIGH"
+    glare.threshold = params.get("threshold", 0.5)
+    glare.size = params.get("size", 8.0)
+    glare.mix = 0.3
+
+    comp = tree.nodes.new("CompositorNodeComposite")
+    comp.location = (600, 0)
+
+    tree.links.new(rl.outputs["Image"], glare.inputs["Image"])
+    tree.links.new(glare.outputs["Image"], comp.inputs["Image"])
+
+    return {"compositor": True, "glare": "FOG_GLOW",
+            "threshold": glare.threshold, "size": glare.size}
 
 
 # ─────────────────────────────────────────────────────────────

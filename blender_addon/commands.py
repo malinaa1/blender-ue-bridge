@@ -233,6 +233,23 @@ def create_object(params):
     radius = params.get("radius", 0.5)
     depth = params.get("depth", 1.0)
 
+    # 灯光类型: point_light|sun_light|spot_light|area_light
+    light_types = {"point_light": "POINT", "sun_light": "SUN",
+                   "spot_light": "SPOT", "area_light": "AREA"}
+    if ptype in light_types:
+        light_data = bpy.data.lights.new(name=name or f"{ptype}", type=light_types[ptype])
+        light_data.color = tuple(params.get("color", [1.0, 1.0, 1.0]))
+        light_data.energy = params.get("energy", 100.0)
+        if ptype == "spot_light":
+            light_data.spot_size = params.get("spot_size", math.radians(45))
+        obj = bpy.data.objects.new(name or f"{ptype}", light_data)
+        bpy.context.collection.objects.link(obj)
+        obj.location = location
+        if any(rotation):
+            obj.rotation_euler = tuple(rotation)
+        return {"name": obj.name, "type": light_types[ptype],
+                "color": list(light_data.color), "energy": light_data.energy}
+
     _deselect_all()
 
     if ptype == "empty":

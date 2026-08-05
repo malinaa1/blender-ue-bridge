@@ -572,6 +572,105 @@ class BlenderClient:
             "object_name": object_name, "path_name": path_name,
             "frames": frames, "start_frame": start_frame})
 
+    # ── 骨架/绑定/形态键 ────────────────────────────────────
+
+    def create_armature(self, bones: list, name: str = "Armature",
+                        display: str = "xray") -> dict:
+        return self.send_command("create_armature", {
+            "bones": bones, "name": name, "display": display})
+
+    def create_turtle_skeleton(self, scale: float = 1.0, origin=None,
+                               name: str = "TurtleRig") -> dict:
+        params = {"scale": scale, "name": name}
+        if origin:
+            params["origin"] = list(origin)
+        return self.send_command("create_turtle_skeleton", params)
+
+    def set_bone_pose(self, name: str, bone: str, rotation=None,
+                      location=None, frame: int = None,
+                      interpolation: str = "") -> dict:
+        params = {"name": name, "bone": bone}
+        if rotation is not None:
+            params["rotation"] = list(rotation)
+        if location is not None:
+            params["location"] = list(location)
+        if frame is not None:
+            params["frame"] = frame
+        if interpolation:
+            params["interpolation"] = interpolation
+        return self.send_command("set_bone_pose", params)
+
+    def get_bone_pose(self, name: str, bone: str) -> dict:
+        return self.send_command("get_bone_pose", {"name": name, "bone": bone})
+
+    def auto_weight(self, mesh: str, armature: str) -> dict:
+        return self.send_command("auto_weight", {"mesh": mesh, "armature": armature})
+
+    def add_shape_key(self, name: str, shape_name: str) -> dict:
+        return self.send_command("add_shape_key", {"name": name, "shape_name": shape_name})
+
+    def set_shape_key_value(self, name: str, shape_name: str, value: float,
+                            frame: int = None) -> dict:
+        params = {"name": name, "shape_name": shape_name, "value": value}
+        if frame is not None:
+            params["frame"] = frame
+        return self.send_command("set_shape_key_value", params)
+
+    def make_eye_blink_shape(self, name: str, shape_name: str = "Blink") -> dict:
+        return self.send_command("make_eye_blink_shape", {
+            "name": name, "shape_name": shape_name})
+
+    # ── 角色/场景宏 ─────────────────────────────────────────
+
+    def create_turtle_shell(self, radius: float = 0.8, height: float = 0.55,
+                            name: str = "Shell", material: dict = None) -> dict:
+        params = {"radius": radius, "height": height, "name": name}
+        if material:
+            params["material"] = material
+        return self.send_command("create_turtle_shell", params)
+
+    def spawn_point_light(self, name: str = "PointLight",
+                          color=(1.0, 1.0, 1.0), energy: float = 100.0,
+                          location=None) -> dict:
+        params = {"type": "point_light", "name": name,
+                  "color": list(color), "energy": energy}
+        if location:
+            params["location"] = list(location)
+        return self.send_command("create_object", params)
+
+    def create_cute_eye(self, location=None, scale: float = 1.0,
+                        name: str = "Eye", look_at: str = "") -> dict:
+        params = {"location": list(location) if location else [0, 0, 0],
+                  "scale": scale, "name": name}
+        if look_at:
+            params["look_at"] = look_at
+        return self.send_command("create_cute_eye", params)
+
+    def create_arena(self, radius: float = 4.0, thickness: float = 0.3,
+                     height: float = 0.2, glow_color=None,
+                     name: str = "Arena") -> dict:
+        params = {"radius": radius, "thickness": thickness, "height": height,
+                  "name": name}
+        if glow_color:
+            params["glow_color"] = list(glow_color)
+        return self.send_command("create_arena", params)
+
+    def create_bubbles(self, count: int = 20, area=None, size=None,
+                       name: str = "Bubbles", animate: bool = False,
+                       frames: int = 120, seed: int = 7) -> dict:
+        params = {"count": count, "name": name, "animate": animate,
+                  "frames": frames, "seed": seed}
+        if area:
+            params["area"] = list(area)
+        if size:
+            params["size"] = list(size)
+        return self.send_command("create_bubbles", params)
+
+    def setup_compositor_glow(self, threshold: float = 0.5,
+                              size: float = 8.0) -> dict:
+        return self.send_command("setup_compositor_glow", {
+            "threshold": threshold, "size": size})
+
     # ── 兼容旧接口 ──────────────────────────────────────────
 
     def execute_code(self, code: str) -> dict:
