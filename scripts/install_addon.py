@@ -98,6 +98,8 @@ print("ADDON ENABLED")
 
 
 def main():
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     ap = argparse.ArgumentParser(description="Install BlenderUE Bridge addon")
     ap.add_argument("--path", help="手动指定 addons 目录")
     ap.add_argument("--blender-version", help="指定 Blender 版本 (如 4.2)")

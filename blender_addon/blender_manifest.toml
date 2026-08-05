@@ -1,0 +1,17 @@
+schema_version = "1.0.0"
+
+id = "blender_ue_bridge"
+version = "2.1.0"
+name = "BlenderUE Bridge"
+tagline = "MCP bridge server for AI-driven modeling & animation"
+maintainer = "malinaa1"
+type = "add-on"
+license = ["MIT"]
+blender_version_min = "4.2.0"
+
+tags = ["3D View", "Development"]
+
+website = "https://github.com/malinaa1/blender-ue-bridge"
+
+[[modules]]
+name = "blender_addon"
