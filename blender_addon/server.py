@@ -100,6 +100,10 @@ def _handle_connection(conn):
             protocol.send_message(conn, {"status": "success", "result": {"pong": True}})
             return
 
+        if ctype == "poll_result":
+            poll_result(conn, msg)
+            return
+
         if ctype == "shutdown":
             protocol.send_message(conn, {"status": "success", "result": {"shutdown": True}})
             bpy.app.timers.register(_deferred_shutdown, first_interval=0.5)
@@ -159,12 +163,9 @@ def _tick():
     return 0.05  # 每 50ms
 
 
-def poll_result(conn):
-    """客户端轮询: {type: poll_result, params: {id: N}}"""
+def poll_result(conn, msg):
+    """客户端轮询: {type: poll_result, params: {id: N}} — msg 已在 _handle_connection 解析"""
     try:
-        msg = protocol.recv_message(conn)
-        if msg is None:
-            return
         cmd_id = msg.get("params", {}).get("id")
         if cmd_id is not None and cmd_id in _pending:
             result = _pending.pop(cmd_id)
