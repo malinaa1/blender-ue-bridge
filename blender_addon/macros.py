@@ -1245,8 +1245,10 @@ def create_cute_eye(params):
     _pbr(glint, "M_Eye_Glint", base=(1.0, 1.0, 1.0, 1.0), roughness=0.0,
          emission=(1.0, 1.0, 1.0), emission_strength=2.0)
 
-    # 合并
-    bpy.ops.object.select_all(action="SELECT")
+    # 合并 (只选眼睛部件 — 绝不用 select_all, 会误并场景其他对象)
+    bpy.ops.object.select_all(action="DESELECT")
+    for part in [eye, pupil, glint]:
+        part.select_set(True)
     bpy.context.view_layer.objects.active = eye
     bpy.ops.object.join()
     eye.name = name
@@ -1356,17 +1358,33 @@ def create_bubbles(params):
 
 
 def setup_compositor_glow(params):
-    """合成辉光: 渲染后处理 (Glare 节点 + 色彩调整)
+    """合成辉光: 渲染后处理 (Glare 节点)
 
     params:
-        threshold (辉光阈值, 0-1), size (强度), enabled
+        threshold (辉光阈值, 0-1), size (强度)
+    兼容 Blender 4.x/5.x (合成节点树位置 API 变化)
     """
     scene = bpy.context.scene
-    scene.use_nodes = True
-    tree = scene.node_tree
+
+    # 多路径查找合成节点树 (Blender 5.x API 重构)
+    tree = None
+    if hasattr(scene, "node_tree") and scene.node_tree is not None:
+        tree = scene.node_tree
+    else:
+        for vl in scene.view_layers:
+            if hasattr(vl, "node_tree") and vl.node_tree is not None:
+                tree = vl.node_tree
+                break
+    if tree is None:
+        # 尝试创建 (4.x 方式)
+        try:
+            scene.use_nodes = True
+            tree = scene.node_tree
+        except Exception:
+            raise ValueError("无法访问合成节点树 (Blender 5.x API 变化)")
+
     tree.nodes.clear()
 
-    # 节点: Render Layers → Glare → Composite
     rl = tree.nodes.new("CompositorNodeRLayers")
     rl.location = (0, 0)
 

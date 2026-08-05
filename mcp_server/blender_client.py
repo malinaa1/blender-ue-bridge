@@ -499,6 +499,42 @@ class BlenderClient:
             params["gravity"] = list(gravity)
         return self.send_command("setup_rigid_body_world", params)
 
+    def capture_animation_frames(self, frames: list = None, count: int = 5,
+                                 tag: str = "anim", width: int = 960,
+                                 height: int = 540, screenshot_dir: str = "") -> dict:
+        """多帧截图: 在指定帧各截一张视口图 (动画视觉验证)"""
+        import os
+        from datetime import datetime
+        base = screenshot_dir or os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            "shared_assets", "screenshots")
+        os.makedirs(base, exist_ok=True)
+
+        info = self.get_frame_info()
+        if info.get("status") != "success":
+            return {"success": False, "error": info.get("message")}
+        finfo = info["result"]
+        start, end = finfo["start"], finfo["end"]
+
+        if frames:
+            frame_list = list(frames)
+        else:
+            frame_list = [start + int((end - start) * i / max(count - 1, 1))
+                          for i in range(count)]
+        frame_list = sorted(set(frame_list))
+
+        ts = datetime.now().strftime("%H%M%S")
+        paths = []
+        for f in frame_list:
+            self.set_frame(f)
+            fname = f"{tag}_{f:04d}_{ts}.png"
+            filepath = os.path.join(base, fname)
+            r = self.get_screenshot(filepath, width, height)
+            if r.get("status") == "success":
+                paths.append({"frame": f, "filepath": filepath})
+        return {"success": True, "frames": paths, "count": len(paths),
+                "note": "用 Read 工具查看这些图片对比运动"}
+
     def render_animation(self, output_dir: str, start: int = None, end: int = None,
                          engine: str = "eevee", resolution_x: int = 1280,
                          resolution_y: int = 720, samples: int = 64) -> dict:

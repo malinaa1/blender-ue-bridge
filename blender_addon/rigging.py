@@ -52,7 +52,11 @@ def create_armature(params):
     arm_data = bpy.data.armatures.new(name)
     arm_data.display_type = "OCTAHEDRAL"
     if params.get("display") == "xray":
-        arm_data.show_in_front = True
+        # Blender 4.3+ 改名 show_x_ray (旧名 show_in_front)
+        if hasattr(arm_data, "show_x_ray"):
+            arm_data.show_x_ray = True
+        elif hasattr(arm_data, "show_in_front"):
+            arm_data.show_in_front = True
 
     arm = bpy.data.objects.new(name, arm_data)
     bpy.context.collection.objects.link(arm)
