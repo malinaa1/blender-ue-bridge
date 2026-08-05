@@ -116,12 +116,13 @@ def build_turtle(blender):
     step(blender, "微笑嘴", r)
 
     # 细分曲面 + 倒角 (整体圆润)
+    last = {"status": "success"}
     for part in ["Turtle_Body", "Turtle_Head"]:
-        blender.add_modifier(part, "subdivision", {"levels": 2})
-        blender.add_modifier(part, "bevel", {"width": 0.01, "segments": 1})
-        blender.apply_modifier(part, "Subsurf")
-        blender.apply_modifier(part, "Bevel")
-    step(blender, "细分曲面 + 倒角 (圆润质感)")
+        last = blender.add_modifier(part, "subdivision", {"levels": 2})
+        last = blender.add_modifier(part, "bevel", {"width": 0.01, "segments": 1})
+        last = blender.apply_modifier(part, "Subsurf")
+        last = blender.apply_modifier(part, "Bevel")
+    step(blender, "细分曲面 + 倒角 (圆润质感)", last)
 
     # 材质
     blender.set_material("Turtle_Head", "M_Skin_Light",
@@ -129,9 +130,9 @@ def build_turtle(blender):
     for lname, _ in limbs:
         blender.set_material(lname, "M_Skin_Light",
                              base_color=[0.35, 0.65, 0.32, 1.0], roughness=0.7)
-    blender.set_material("Turtle_Tail", "M_Skin_Light",
-                         base_color=[0.35, 0.65, 0.32, 1.0], roughness=0.7)
-    step(blender, "皮肤材质 (浅绿哑光)")
+    last = blender.set_material("Turtle_Tail", "M_Skin_Light",
+                                base_color=[0.35, 0.65, 0.32, 1.0], roughness=0.7)
+    step(blender, "皮肤材质 (浅绿哑光)", last)
 
     # 截图验证
     blender.get_screenshot(os.path.join(SHOT_DIR, "turtle_model.png"),
@@ -174,7 +175,7 @@ def bind_turtle(blender):
     step(blender, "合并网格 (9 部件)", r)
 
     r = blender.auto_weight(mesh="Turtle_Mesh", armature="TurtleRig")
-    step(blender, "自动权重绑定 (Ctrl+P)")
+    step(blender, "自动权重绑定 (Ctrl+P)", r)
 
     return r
 
@@ -191,7 +192,7 @@ def build_expressions(blender):
     r = blender.add_shape_key("Turtle_Mesh", "Angry")
     step(blender, "愤怒形态键 (眉毛下压)", r)
     r = blender.set_shape_key_value("Turtle_Mesh", "Angry", 0.0)
-    step(blender, "愤怒值初始化 0")
+    step(blender, "愤怒值初始化 0", r)
 
     r = blender.add_shape_key("Turtle_Mesh", "Surprised")
     step(blender, "惊讶形态键", r)
@@ -308,13 +309,13 @@ def build_scene(blender):
     r = blender.create_object("empty", "Light_Rim", location=[-3, 0, 2])
     blender.spawn_point_light("Light_Rim", color=[1.0, 0.75, 0.35], energy=600)
     r = blender.create_object("empty", "Light_Ambient", location=[0, 0, 6])
-    blender.spawn_point_light("Light_Ambient", color=[0.3, 0.5, 0.8], energy=200)
-    step(blender, "三点布光 (冷主光 + 暖轮廓 + 环境)")
+    last = blender.spawn_point_light("Light_Ambient", color=[0.3, 0.5, 0.8], energy=200)
+    step(blender, "三点布光 (冷主光 + 暖轮廓 + 环境)", last)
 
     # 相机: 低角度仰拍 + 广角 24mm
     r = blender.camera_setup(location=[4.5, -2.5, 0.8], target=[0.3, 0, 0.9],
                              lens_mm=24, name="Cam_Fight")
-    step(blender, "低角度广角相机 (24mm 仰拍)")
+    step(blender, "低角度广角相机 (24mm 仰拍)", r)
 
     return r
 

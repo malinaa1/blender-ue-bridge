@@ -1174,7 +1174,12 @@ def create_turtle_shell(params):
         boundary = [e for e in bm.edges if e.is_boundary]
         if boundary:
             r = _bm.ops.extrude_edge_only(bm, edges=boundary)
-            new_edges = [e for e in r["edges"]]
+            # 5.x 兼容: 返回值键可能变化, 从结果里收集所有边
+            new_edges = []
+            for val in r.values():
+                for item in val:
+                    if isinstance(item, _bm.types.BMEdge):
+                        new_edges.append(item)
             for e in new_edges:
                 for v in e.verts:
                     v.co = v.co * 1.15 + (0, 0, 0.02)
