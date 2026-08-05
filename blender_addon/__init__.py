@@ -24,9 +24,9 @@ import bpy
 import bpy.utils
 
 from . import server
-from .ui import CLASSES as _UI_CLASSES
+from .ui import BRIDGE_PT_Panel
 
-_MODULE_CLASSES = _UI_CLASSES  # 面板 + 启停操作符
+_MODULE_CLASSES = (BRIDGE_PT_Panel,)  # 仅面板 (状态显示; Blender 5.2 operator kwargs 兼容问题)
 
 
 def register():

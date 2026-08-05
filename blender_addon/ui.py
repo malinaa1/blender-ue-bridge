@@ -19,9 +19,7 @@ class BRIDGE_PT_Panel(bpy.types.Panel):
             row = layout.row()
             row.label(text=f"127.0.0.1:{server.PORT}")
         else:
-            layout.label(text="○ 服务器未运行", icon="ERROR")
-        label = "停止服务器" if server._server_sock is not None else "启动服务器"
-        layout.operator("bridge.toggle_server", text=label)
+            layout.label(text="○ 服务器未运行 — 请重启插件", icon="ERROR")
 
 
 class BRIDGE_OT_ToggleServer(bpy.types.Operator):
