@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# 日志
+bridge.log
+
+# 运行时资产 (生成的模型/纹理/截图)
+shared_assets/models/
+shared_assets/textures/
+shared_assets/materials/
+shared_assets/screenshots/
+
+# Claude Code
+.claude/backups/
+.claude/settings.local.json
+
+# 打包
+*.zip
+dist/
+build/
