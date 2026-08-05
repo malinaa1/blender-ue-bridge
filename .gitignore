@@ -12,9 +12,8 @@ shared_assets/textures/
 shared_assets/materials/
 shared_assets/screenshots/
 
-# Claude Code
-.claude/backups/
-.claude/settings.local.json
+# Claude Code (本地配置, 不入库)
+.claude/
 
 # 打包
 *.zip

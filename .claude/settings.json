@@ -1,9 +1,0 @@
-{
-  "mcpServers": {
-    "blender-ue-bridge": {
-      "command": "python",
-      "args": ["-m", "mcp_server.server"],
-      "cwd": "."
-    }
-  }
-}
