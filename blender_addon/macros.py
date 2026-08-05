@@ -1182,7 +1182,7 @@ def create_turtle_shell(params):
                         new_edges.append(item)
             for e in new_edges:
                 for v in e.verts:
-                    v.co = v.co * 1.15 + (0, 0, 0.02)
+                    v.co = v.co * 1.15 + Vector((0, 0, 0.02))
 
         bm.normal_update()
         _bm.update_edit_mesh(shell.data)
@@ -1381,7 +1381,8 @@ def setup_compositor_glow(params):
             scene.use_nodes = True
             tree = scene.node_tree
         except Exception:
-            raise ValueError("无法访问合成节点树 (Blender 5.x API 变化)")
+            # Blender 5.x 合成 API 变化 — 优雅降级 (EEVEE 自带 Bloom)
+            return {"compositor": False, "note": "Blender 5.x 合成节点树 API 变化 — 跳过 Glare, 可用 EEVEE 内置 Bloom"}
 
     tree.nodes.clear()
 

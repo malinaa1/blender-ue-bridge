@@ -298,9 +298,12 @@ def render_animation(params):
     prev_path = scene.render.filepath
 
     engine = params.get("engine", "eevee")
-    scene.render.engine = "CYCLES" if engine == "cycles" else "BLENDER_EEVEE_NEXT"
+    # Blender 4.2=BLENDER_EEVEE_NEXT, 5.x=BLENDER_EEVEE — 枚举兼容
     if engine == "cycles":
+        scene.render.engine = "CYCLES"
         scene.cycles.samples = int(params.get("samples", 64))
+    else:
+        scene.render.engine = "BLENDER_EEVEE"  # 5.x 名称 (4.2 曾用 _NEXT)
     scene.render.resolution_x = int(params.get("resolution_x", 1280))
     scene.render.resolution_y = int(params.get("resolution_y", 720))
     scene.render.image_settings.file_format = "PNG"

@@ -220,13 +220,7 @@ def auto_weight(params):
     bpy.context.view_layer.objects.active = arm
     bpy.ops.object.parent_set(type="ARMATURE_AUTO")
 
-    # 清理权重 (可选)
-    if params.get("clean_weights", True):
-        bpy.context.view_layer.objects.active = mesh
-        bpy.ops.object.mode_set(mode="WEIGHT_PAINT")
-        bpy.ops.paint.weight_gradient()  # 触发权重更新
-        bpy.ops.object.mode_set(mode="OBJECT")
-
+    # 自动权重已自带平滑分配, 无需额外清理
     return {"mesh": mesh.name, "armature": arm.name, "parented": True}
 
 

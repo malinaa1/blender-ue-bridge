@@ -71,46 +71,45 @@ def build_turtle(blender):
     r = blender.set_transform("Turtle_Body", scale=[1.3, 1.0, 0.85])
     step(blender, "身体椭圆化 (萌感)", r)
 
-    # 头部 (占身体 1/3, 超大比例)
+    # 头部 (占身体 1/3, 超大比例 — 从壳前方伸出)
     r = blender.create_object("sphere", "Turtle_Head", radius=0.34,
-                              location=[0.75, 0, 0.75])
+                              location=[0.95, 0, 0.8])
     step(blender, "头部 (大比例)", r)
     blender.set_transform("Turtle_Head", scale=[1.05, 1.0, 1.1])
 
-    # 六边形龟壳
-    r = blender.create_turtle_shell(radius=0.75, height=0.5,
+    # 六边形龟壳 — 罩住身体上半部 (底部 z=0.1, 顶 z=1.0)
+    r = blender.create_turtle_shell(radius=1.0, height=0.9,
                                     name="Turtle_Shell",
                                     material={"name": "M_Shell_Deep",
                                               "base_color": [0.12, 0.38, 0.18, 1.0],
                                               "roughness": 0.4})
     step(blender, "龟壳 (六边形鳞片 + 裙边)", r)
-    blender.set_transform("Turtle_Shell", location=[-0.1, 0, 0.5],
-                          scale=[1.0, 1.0, 0.95])
+    blender.set_transform("Turtle_Shell", location=[-0.35, 0, 0.1])
 
-    # 四肢 (短粗圆润 — 萌点)
+    # 四肢 (短粗圆润 — 从壳边缘伸出)
     limbs = [
-        ("Leg_FL", [0.35, 0.5, 0.35]), ("Leg_FR", [0.35, -0.5, 0.35]),
-        ("Leg_BL", [-0.45, 0.45, 0.35]), ("Leg_BR", [-0.45, -0.45, 0.35]),
+        ("Leg_FL", [0.5, 0.62, 0.2]), ("Leg_FR", [0.5, -0.62, 0.2]),
+        ("Leg_BL", [-0.6, 0.55, 0.2]), ("Leg_BR", [-0.6, -0.55, 0.2]),
     ]
     for lname, loc in limbs:
-        r = blender.create_object("sphere", lname, radius=0.22, location=loc)
-        blender.set_transform(lname, scale=[0.9, 1.1, 0.8])
+        r = blender.create_object("sphere", lname, radius=0.24, location=loc)
+        blender.set_transform(lname, scale=[1.0, 0.9, 0.75])
 
-    # 尾巴
-    r = blender.create_object("sphere", "Turtle_Tail", radius=0.13,
-                              location=[-0.75, 0, 0.3])
-    blender.set_transform("Turtle_Tail", scale=[1.4, 0.8, 0.8])
+    # 尾巴 (从壳后方伸出)
+    r = blender.create_object("sphere", "Turtle_Tail", radius=0.14,
+                              location=[-1.05, 0, 0.3])
+    blender.set_transform("Turtle_Tail", scale=[1.6, 0.8, 0.8])
 
-    # 大眼睛 (萌点核心 — 超大 + 发光)
-    r = blender.create_cute_eye(location=[0.98, 0.28, 0.92], scale=1.0,
+    # 大眼睛 (萌点核心 — 超大 + 发光, 在头部前方)
+    r = blender.create_cute_eye(location=[1.18, 0.3, 0.98], scale=1.0,
                                 name="Eye_R")
-    r = blender.create_cute_eye(location=[0.98, -0.28, 0.92], scale=1.0,
+    r = blender.create_cute_eye(location=[1.18, -0.3, 0.98], scale=1.0,
                                 name="Eye_L")
     step(blender, "大眼睛 (白眼球+瞳孔+高光)", r)
 
-    # 微笑嘴 (扁椭球)
+    # 微笑嘴 (扁椭球, 眼睛下方)
     r = blender.create_object("torus", "Turtle_Mouth", radius=0.16,
-                              depth=0.09, location=[0.88, 0, 0.62])
+                              depth=0.09, location=[1.08, 0, 0.68])
     blender.set_transform("Turtle_Mouth", scale=[1.0, 1.0, 0.4],
                           rotation=[0, 0.5, 0])
     step(blender, "微笑嘴", r)
@@ -118,8 +117,10 @@ def build_turtle(blender):
     # 细分曲面 + 倒角 (整体圆润)
     last = {"status": "success"}
     for part in ["Turtle_Body", "Turtle_Head"]:
-        last = blender.add_modifier(part, "subdivision", {"levels": 2})
-        last = blender.add_modifier(part, "bevel", {"width": 0.01, "segments": 1})
+        last = blender.add_modifier(part, "subdivision", {"levels": 2},
+                                    modifier_name="Subsurf")
+        last = blender.add_modifier(part, "bevel", {"width": 0.01, "segments": 1},
+                                    modifier_name="Bevel")
         last = blender.apply_modifier(part, "Subsurf")
         last = blender.apply_modifier(part, "Bevel")
     step(blender, "细分曲面 + 倒角 (圆润质感)", last)
@@ -149,12 +150,12 @@ def build_rig(blender):
     print("  阶段 2: 骨架 (脊柱3节 + 前肢两段 + 尾巴)")
     print("═" * 60)
 
-    # 缩放适配: 海龟身体 ~1.6m, 骨架 scale=1.6
-    r = blender.create_turtle_skeleton(scale=1.6, name="TurtleRig")
+    # 缩放适配: 海龟全长 ~2.8m, 骨架 scale=1.2 对准头部位置
+    r = blender.create_turtle_skeleton(scale=1.2, name="TurtleRig")
     step(blender, "海龟骨架 (12 骨骼)", r)
 
-    # 对齐骨架到身体中心
-    blender.set_transform("TurtleRig", location=[-0.1, 0, 0.15])
+    # 对齐: 头骨 (1.05,0,0.42)*1.2+origin → 网格头中心 (0.95,0,0.8)
+    blender.set_transform("TurtleRig", location=[-0.31, 0, 0.3])
     return r
 
 
