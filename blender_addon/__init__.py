@@ -24,9 +24,9 @@ import bpy
 import bpy.utils
 
 from . import server
-from .ui import BRIDGE_PT_Panel
+from .ui import CLASSES as _UI_CLASSES
 
-_MODULE_CLASSES = (BRIDGE_PT_Panel,)
+_MODULE_CLASSES = _UI_CLASSES  # 面板 + 启停操作符
 
 
 def register():
