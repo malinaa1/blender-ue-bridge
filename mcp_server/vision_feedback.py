@@ -18,9 +18,13 @@ class VisionFeedback:
     """视觉反馈闭环系统"""
 
     def __init__(self, blender: BlenderClient, ue: UEClient,
-                 screenshot_dir: str = "D:/MOD/blender-ue-bridge/shared_assets/screenshots"):
+                 screenshot_dir: str = ""):
         self.blender = blender
         self.ue = ue
+        if not screenshot_dir:
+            screenshot_dir = os.path.join(
+                os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                "shared_assets", "screenshots")
         self.screenshot_dir = screenshot_dir
         os.makedirs(screenshot_dir, exist_ok=True)
 

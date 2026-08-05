@@ -50,7 +50,7 @@ Claude Code / AI Client
 
 1. **安装 Blender Addon**：
 ```bash
-cd D:/MOD/blender-ue-bridge
+cd blender-ue-bridge
 python scripts/install_addon.py          # 自动检测 Blender 版本目录
 # 或指定: python scripts/install_addon.py --blender-version 4.2
 # 或打包: python scripts/install_addon.py --zip blender_addon.zip

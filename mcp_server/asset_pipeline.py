@@ -30,10 +30,15 @@ class AssetPipeline:
     """Blender ↔ UE 资产流转管线"""
 
     def __init__(self, blender: BlenderClient, ue: UEClient,
-                 shared_dir: str = "D:/MOD/blender-ue-bridge/shared_assets",
+                 shared_dir: str = "",
                  ue_content_dir: str = ""):
         self.blender = blender
         self.ue = ue
+        if not shared_dir:
+            # 默认使用项目内 shared_assets/
+            shared_dir = os.path.join(
+                os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                "shared_assets")
         self.shared_dir = shared_dir
         self.models_dir = os.path.join(shared_dir, "models")
         self.textures_dir = os.path.join(shared_dir, "textures")

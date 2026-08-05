@@ -3,7 +3,7 @@
     "blender-ue-bridge": {
       "command": "python",
       "args": ["-m", "mcp_server.server"],
-      "cwd": "D:/MOD/blender-ue-bridge"
+      "cwd": "."
     }
   }
 }

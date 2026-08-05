@@ -283,11 +283,13 @@ obj.location.z = 0
 print(f"Created: {obj.name}, Vertices: {len(obj.data.vertices)}, Faces: {len(obj.data.polygons)}")
 """)
 
-    # 导出 FBX
-    send_blender("""
+    # 导出 FBX (目标目录: 环境变量 UE_CONTENT_DIR 或当前目录)
+    export_dir = os.environ.get("UE_CONTENT_DIR", ".")
+    export_dir = os.path.join(export_dir, "ForestRealm", "Models")
+    send_blender('''
 import bpy, os
 
-export_dir = "D:/MOD/input/DONG/Content/ForestRealm/Models"
+export_dir = r"%s"
 os.makedirs(export_dir, exist_ok=True)
 
 filepath = os.path.join(export_dir, "SM_Giant_Flower.fbx")
@@ -303,7 +305,7 @@ bpy.ops.export_scene.fbx(
     bake_anim=False,
 )
 print(f"Exported: {filepath}")
-""")
+''' % export_dir)
 
     print("\n✅ SM_Giant_Flower 创建完成!")
 

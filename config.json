@@ -9,7 +9,7 @@
     "port": 55557,
     "timeout": 30,
     "large_timeout": 300,
-    "content_dir": "D:/MOD/ue-project/Content"
+    "content_dir": ""
   },
   "shared_assets": {
     "base_dir": "",
@@ -24,6 +24,6 @@
   },
   "_notes": {
     "shared_assets.base_dir": "留空则默认使用项目内 shared_assets/，可用环境变量 BRIDGE_SHARED_DIR 覆盖",
-    "unreal.content_dir": "UE 项目 Content 目录，可用环境变量 UE_CONTENT_DIR 覆盖（多项目支持）"
+    "unreal.content_dir": "留空则使用环境变量 UE_CONTENT_DIR 指向你的 UE 项目 Content 目录，例如 set UE_CONTENT_DIR=D:/UE5Projects/MyGame/Content"
   }
 }

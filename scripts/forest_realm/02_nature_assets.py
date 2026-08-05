@@ -12,7 +12,9 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspa
 from mcp_server.blender_client import BlenderClient
 
 client = BlenderClient()
-EXPORT_DIR = "D:/MOD/input/DONG/Content/ForestRealm/Models"
+# 导出目录: 环境变量 UE_CONTENT_DIR 或当前目录
+EXPORT_DIR = os.path.join(os.environ.get("UE_CONTENT_DIR", "."),
+                          "ForestRealm", "Models")
 
 def send_blender(code):
     result = client.execute_code(code)

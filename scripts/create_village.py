@@ -22,7 +22,11 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from mcp_server.blender_client import BlenderClient
 
 BRIDGE_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-UE_CONTENT = "D:/MOD/ue-project/Content"
+# UE 项目 Content 目录 — 通过环境变量 UE_CONTENT_DIR 指定 (例如 D:/UE5Projects/MyGame/Content)
+UE_CONTENT = os.environ.get("UE_CONTENT_DIR", "")
+if not UE_CONTENT:
+    print("⚠️ 未设置 UE_CONTENT_DIR 环境变量 — 跳过 UE 导入 (仅 Blender 建模)")
+    print("   设置方式: set UE_CONTENT_DIR=D:/你的UE项目/Content")
 EXPORT_DIR = os.path.join(BRIDGE_ROOT, "shared_assets", "models")
 
 
