@@ -422,6 +422,156 @@ class BlenderClient:
         return self.send_command("export_gltf", {
             "object_name": object_name, "filepath": export_path}, large=True)
 
+    # ── 动画 ────────────────────────────────────────────────
+
+    def set_frame_range(self, start: int, end: int, fps: int = None) -> dict:
+        params = {"start": start, "end": end}
+        if fps:
+            params["fps"] = fps
+        return self.send_command("set_frame_range", params)
+
+    def set_frame(self, frame: int) -> dict:
+        return self.send_command("set_frame", {"frame": frame})
+
+    def get_frame_info(self) -> dict:
+        return self.send_command("get_frame_info")
+
+    def insert_keyframe(self, name: str, frame: int, location=None,
+                        rotation=None, scale=None,
+                        interpolation: str = "") -> dict:
+        params = {"name": name, "frame": frame}
+        if location is not None:
+            params["location"] = list(location)
+        if rotation is not None:
+            params["rotation"] = list(rotation)
+        if scale is not None:
+            params["scale"] = list(scale)
+        if interpolation:
+            params["interpolation"] = interpolation
+        return self.send_command("insert_keyframe", params)
+
+    def animate_location(self, name: str, start_frame: int, end_frame: int,
+                         from_pos, to_pos, interpolation: str = "bezier") -> dict:
+        return self.send_command("animate_location", {
+            "name": name, "start_frame": start_frame, "end_frame": end_frame,
+            "from": list(from_pos), "to": list(to_pos),
+            "interpolation": interpolation})
+
+    def animate_rotation(self, name: str, start_frame: int, end_frame: int,
+                         from_rot, to_rot, interpolation: str = "bezier") -> dict:
+        return self.send_command("animate_rotation", {
+            "name": name, "start_frame": start_frame, "end_frame": end_frame,
+            "from": list(from_rot), "to": list(to_rot),
+            "interpolation": interpolation})
+
+    def animate_scale(self, name: str, start_frame: int, end_frame: int,
+                      from_scale, to_scale, interpolation: str = "bezier") -> dict:
+        return self.send_command("animate_scale", {
+            "name": name, "start_frame": start_frame, "end_frame": end_frame,
+            "from": list(from_scale), "to": list(to_scale),
+            "interpolation": interpolation})
+
+    def clear_animation(self, name: str, data_path: str = "") -> dict:
+        params = {"name": name}
+        if data_path:
+            params["data_path"] = data_path
+        return self.send_command("clear_animation", params)
+
+    def add_constraint(self, name: str, constraint: str, target: str = "",
+                       influence: float = 1.0) -> dict:
+        params = {"name": name, "constraint": constraint, "influence": influence}
+        if target:
+            params["target"] = target
+        return self.send_command("add_constraint", params)
+
+    def remove_constraint(self, name: str, constraint: str) -> dict:
+        return self.send_command("remove_constraint", {"name": name, "constraint": constraint})
+
+    def add_rigid_body(self, name: str, type: str = "active",
+                       mass: float = 1.0, friction: float = 0.5) -> dict:
+        return self.send_command("add_rigid_body", {
+            "name": name, "type": type, "mass": mass, "friction": friction})
+
+    def setup_rigid_body_world(self, gravity=None, frame_start: int = 1,
+                               frame_end: int = 250) -> dict:
+        params = {"frame_start": frame_start, "frame_end": frame_end}
+        if gravity:
+            params["gravity"] = list(gravity)
+        return self.send_command("setup_rigid_body_world", params)
+
+    def render_animation(self, output_dir: str, start: int = None, end: int = None,
+                         engine: str = "eevee", resolution_x: int = 1280,
+                         resolution_y: int = 720, samples: int = 64) -> dict:
+        params = {"output_dir": output_dir, "engine": engine,
+                  "resolution_x": resolution_x, "resolution_y": resolution_y,
+                  "samples": samples}
+        if start is not None:
+            params["start"] = start
+        if end is not None:
+            params["end"] = end
+        return self.send_command("render_animation", params, large=True)
+
+    # ── 相机运镜宏 ──────────────────────────────────────────
+
+    def camera_setup(self, location=None, target=None, fov: float = 45,
+                     name: str = "Camera", target_name: str = "",
+                     lens_mm: float = 35) -> dict:
+        params = {"fov": fov, "name": name, "lens_mm": lens_mm}
+        if location:
+            params["location"] = list(location)
+        if target:
+            params["target"] = list(target)
+        if target_name:
+            params["target_name"] = target_name
+        return self.send_command("camera_setup", params)
+
+    def camera_orbit(self, radius: float = 8.0, height: float = 2.0,
+                     start_angle: float = 0, end_angle: float = 360,
+                     frames: int = 120, camera: str = "Camera",
+                     target: str = "", start_frame: int = 0) -> dict:
+        params = {"radius": radius, "height": height, "start_angle": start_angle,
+                  "end_angle": end_angle, "frames": frames, "camera": camera,
+                  "start_frame": start_frame}
+        if target:
+            params["target"] = target
+        return self.send_command("camera_orbit", params)
+
+    def camera_dolly(self, from_distance: float = 8.0, to_distance: float = 3.0,
+                     height: float = 2.0, frames: int = 90,
+                     camera: str = "Camera", target: str = "",
+                     start_frame: int = 0) -> dict:
+        params = {"from_distance": from_distance, "to_distance": to_distance,
+                  "height": height, "frames": frames, "camera": camera,
+                  "start_frame": start_frame}
+        if target:
+            params["target"] = target
+        return self.send_command("camera_dolly", params)
+
+    def animate_turntable(self, object_name: str, revolutions: int = 1,
+                          frames: int = 120, axis: str = "z",
+                          start_frame: int = 0) -> dict:
+        return self.send_command("animate_turntable", {
+            "object_name": object_name, "revolutions": revolutions,
+            "frames": frames, "axis": axis, "start_frame": start_frame})
+
+    def animate_float(self, object_name: str, height: float = 0.3,
+                      frames: int = 60, start_frame: int = 0) -> dict:
+        return self.send_command("animate_float", {
+            "object_name": object_name, "height": height,
+            "frames": frames, "start_frame": start_frame})
+
+    def animate_appear(self, object_name: str, frame: int = 0,
+                       duration: int = 20, bounce: bool = True) -> dict:
+        return self.send_command("animate_appear", {
+            "object_name": object_name, "frame": frame,
+            "duration": duration, "bounce": bounce})
+
+    def follow_path(self, object_name: str, path_name: str,
+                    frames: int = 120, start_frame: int = 0) -> dict:
+        return self.send_command("follow_path", {
+            "object_name": object_name, "path_name": path_name,
+            "frames": frames, "start_frame": start_frame})
+
     # ── 兼容旧接口 ──────────────────────────────────────────
 
     def execute_code(self, code: str) -> dict:

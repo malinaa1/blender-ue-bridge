@@ -119,6 +119,45 @@ UE: spawn_ue_actor PointLight, 强度单位 1000 (1W 灯泡 = 1000 lumens)"""),
 
 每完成一个主要部分 (墙体/屋顶/家具) 执行一次, 最多 3 轮。
 最后 check_mesh_quality 确认质量分 >= 90 再传输。"""),
+
+    ("animation_workflow", "AI 动画工作流 (关键帧+相机运镜+多帧验证)", """\
+## AI 动画工作流 (参考 Evolink-AI Seedance 工作流)
+
+### 核心原则: 相机运镜优先
+- 先定镜头语言, 再动物体。相机 = 影片的叙事者
+- 运镜宏工具: camera_orbit(环绕) / camera_dolly(推拉) / turntable(转盘)
+- 相机设置: camera_setup(location, target, fov) — 自动跟踪目标
+
+### 关键帧动画
+- animate_location/rotation/scale: 起点帧 → 终点帧, 自动插值
+- 插值选择: bezier(默认, 平滑) / linear(机械) / constant(瞬变) / bounce(弹跳)
+- rotation 用角度 (度), 内部转弧度
+- 组合: animate_appear(出现) + animate_float(漂浮) + animate_turntable(旋转)
+
+### 物理动画 (刚体)
+- 地面: add_rigid_body(type=passive)
+- 物体: add_rigid_body(type=active, mass, friction)
+- setup_rigid_body_world(gravity=[0,0,-9.81], frame_start/end)
+- 模拟由 Blender 物理引擎自动计算 — AI 只需设参数 + 检查结果
+
+### 视觉验证闭环 (关键!)
+AI 看不到"运动", 只能看帧截图:
+1. set_animation_range 设置时间轴
+2. capture_animation_frames(frames=[f1, f2, f3...]) 多帧截图
+3. Read 对比这些图片 — 检查: 运动是否流畅? 穿模? 节奏对?
+4. 不满意 → 调整参数/插值 → 重新多帧截图
+5. 满意 → render_animation 渲染成片 (eevee 预览 / cycles 成片)
+
+### 节奏参考
+- 24 fps 电影感 / 30 fps 标准 / 60 fps 游戏
+- 环绕 120 帧 ≈ 5 秒 (24fps) — 速度感: 60-90 帧快速, 180+ 帧舒缓
+- 出现动画 15-25 帧, 漂浮周期 45-60 帧
+
+### 完整流程示例 (产品展示)
+1. camera_setup + camera_orbit(360°, 120帧)
+2. animate_turntable(产品, 1圈, 120帧)
+3. capture_animation_frames(frames=[0,30,60,90,120])
+4. 检查 → render_animation(eevee) 预览 → cycles 成片"""),
 ]
 
 

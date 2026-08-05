@@ -8,9 +8,10 @@ AI 驱动的 Blender ↔ Unreal Engine 全流程桥接系统，通过 MCP 协议
 - ✅ **真实拓扑建模**：墙壁门窗开洞为四边面构造，非堆叠方块
 - ✅ **网格质量检查**：非流形边/孤立顶点/零面积面/质量评分
 - ✅ **测量与断言**：距离/间隙/对齐/接触验证
-- ✅ **6 个专家提示词**：拓扑/尺度/PBR 材质/灯光/自审工作流
+- ✅ **AI 动画层**：关键帧/约束/刚体物理/相机运镜（环绕/推拉/转盘）/多帧视觉验证/渲染
+- ✅ **7 个专家提示词**：拓扑/尺度/PBR 材质/灯光/自审/动画工作流
 - ✅ **线程安全协议**：长度前缀 JSON + 主线程队列 + 大操作直连
-- ✅ **62 个 MCP 工具**（v1 为 27 个）
+- ✅ **83 个 MCP 工具**（v1 为 27 个）
 
 ## 架构
 
@@ -115,6 +116,20 @@ python scripts/demo_precision.py --to-ue  # 构建后导入 UE
 | `measure_distance` / `measure_gap` / `measure_alignment` | 距离/间隙/对齐 |
 | `assert_dimensions` / `assert_contact` | 尺寸/接触断言 |
 
+### 动画层（AI 影视工作流）
+
+| 工具 | 说明 |
+|------|------|
+| `set_animation_range` / `set_current_frame` | 时间轴控制 |
+| `insert_keyframe` / `animate_location/rotation/scale` | 关键帧动画（角度/插值：bezier/linear/bounce） |
+| `camera_setup` / `camera_orbit` / `camera_dolly` | **相机运镜**（环绕 360°/推拉，自动跟踪目标） |
+| `animate_turntable` / `animate_float` / `animate_appear` | 转盘/漂浮/出现（产品展示三件套） |
+| `add_constraint` / `remove_constraint` | 约束（track_to/follow_path/copy_*） |
+| `add_rigid_body` / `setup_rigid_body_world` | **刚体物理**（active/passive，AI 设参→引擎模拟） |
+| `capture_animation_frames` | **多帧截图**（动画视觉验证核心：AI 对比帧看运动） |
+| `render_animation` | 渲染帧序列（eevee 预览/cycles 成片） |
+| `follow_path` | 沿曲线路径运动 |
+
 ### 视觉层
 
 | 工具 | 说明 |
@@ -135,7 +150,8 @@ python scripts/demo_precision.py --to-ue  # 构建后导入 UE
 ### 专家提示词（6 个）
 
 `blender_best_practices` · `topology_best_practices` · `scale_reference_guide` ·
-`material_workflow_guide` · `lighting_principles` · `auto_critique_workflow`
+`material_workflow_guide` · `lighting_principles` · `auto_critique_workflow` ·
+`animation_workflow`
 
 ## 使用示例
 
@@ -149,8 +165,20 @@ python scripts/demo_precision.py --to-ue  # 构建后导入 UE
 
 "墙宽0.2m，验证厚度对不对"                          → assert_dimensions
 
+"让相机环绕房屋转一圈，120帧，然后多帧截图验证"      → camera_orbit + capture_animation_frames
+
 "把房屋导出FBX并导入UE的 /Game/VillageDemo/"         → transfer_model / export_blender_model
 ```
+
+## AI 动画演示
+
+```bash
+python scripts/demo_animation.py              # 动画设置 + 多帧验证
+python scripts/demo_animation.py --render     # 额外渲染成片 (eevee)
+```
+
+流程: 建模 → 相机运镜 (环绕/推拉) → 物体动画 (转盘/漂浮/出现) →
+刚体物理 (掉落模拟) → **多帧截图验证** → 渲染成片
 
 ## 配置
 

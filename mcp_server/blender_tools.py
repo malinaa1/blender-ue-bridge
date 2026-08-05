@@ -288,6 +288,152 @@ def register(mcp, blender: BlenderClient, screenshot_dir: str):
         return blender.check_scene_quality()
 
     # ═══════════════════════════════════════════════════════
+    # 动画层 — 时间轴/关键帧/约束/物理
+    # ═══════════════════════════════════════════════════════
+
+    @mcp.tool()
+    def set_animation_range(start: int, end: int, fps: int = None) -> dict:
+        """设置动画帧范围 (start/end 帧, 可选 fps)"""
+        return blender.set_frame_range(start, end, fps)
+
+    @mcp.tool()
+    def set_current_frame(frame: int) -> dict:
+        """跳转当前帧"""
+        return blender.set_frame(frame)
+
+    @mcp.tool()
+    def get_animation_info() -> dict:
+        """获取时间轴信息 (当前帧/范围/fps)"""
+        return blender.get_frame_info()
+
+    @mcp.tool()
+    def insert_keyframe(name: str, frame: int, location: list = None,
+                        rotation: list = None, scale: list = None,
+                        interpolation: str = "bezier") -> dict:
+        """插入关键帧 (rotation 用角度)
+
+        Args:
+            interpolation: bezier|linear|constant|bounce|elastic
+        """
+        return blender.insert_keyframe(name, frame, location, rotation, scale,
+                                       interpolation)
+
+    @mcp.tool()
+    def animate_location(name: str, start_frame: int, end_frame: int,
+                         from_pos: list, to_pos: list,
+                         interpolation: str = "bezier") -> dict:
+        """位置动画: 从 from_pos 到 to_pos"""
+        return blender.animate_location(name, start_frame, end_frame,
+                                        from_pos, to_pos, interpolation)
+
+    @mcp.tool()
+    def animate_rotation(name: str, start_frame: int, end_frame: int,
+                         from_rot: list, to_rot: list,
+                         interpolation: str = "bezier") -> dict:
+        """旋转动画 (角度): 从 from_rot 到 to_rot"""
+        return blender.animate_rotation(name, start_frame, end_frame,
+                                        from_rot, to_rot, interpolation)
+
+    @mcp.tool()
+    def animate_scale(name: str, start_frame: int, end_frame: int,
+                      from_scale: list, to_scale: list,
+                      interpolation: str = "bezier") -> dict:
+        """缩放动画: 从 from_scale 到 to_scale"""
+        return blender.animate_scale(name, start_frame, end_frame,
+                                     from_scale, to_scale, interpolation)
+
+    @mcp.tool()
+    def clear_animation(name: str, data_path: str = "") -> dict:
+        """清除对象动画 (空 = 全部)"""
+        return blender.clear_animation(name, data_path)
+
+    @mcp.tool()
+    def add_constraint(name: str, constraint: str, target: str = "",
+                       influence: float = 1.0) -> dict:
+        """添加约束
+
+        Args:
+            constraint: track_to|damped_track|copy_location|copy_rotation|
+                        copy_scale|child_of|locked_track|stretch_to|follow_path
+        """
+        return blender.add_constraint(name, constraint, target, influence)
+
+    @mcp.tool()
+    def remove_constraint(name: str, constraint: str) -> dict:
+        """移除约束"""
+        return blender.remove_constraint(name, constraint)
+
+    @mcp.tool()
+    def add_rigid_body(name: str, type: str = "active",
+                       mass: float = 1.0, friction: float = 0.5) -> dict:
+        """添加刚体: type=active(动态)/passive(静态, 如地面)"""
+        return blender.add_rigid_body(name, type, mass, friction)
+
+    @mcp.tool()
+    def setup_rigid_body_world(gravity: list = None, frame_start: int = 1,
+                               frame_end: int = 250) -> dict:
+        """配置物理世界 (重力/模拟范围)"""
+        return blender.setup_rigid_body_world(gravity, frame_start, frame_end)
+
+    # ═══════════════════════════════════════════════════════
+    # 动画宏层 — 相机运镜 (AI 影视工作流核心)
+    # ═══════════════════════════════════════════════════════
+
+    @mcp.tool()
+    def camera_setup(location: list = None, target: list = None,
+                     fov: float = 45, lens_mm: float = 35,
+                     name: str = "Camera") -> dict:
+        """创建相机 + 目标点, 自动跟踪目标, 设为活动相机"""
+        return blender.camera_setup(location, target, fov, name, lens_mm=lens_mm)
+
+    @mcp.tool()
+    def camera_orbit(radius: float = 8.0, height: float = 2.0,
+                     start_angle: float = 0, end_angle: float = 360,
+                     frames: int = 120, camera: str = "Camera",
+                     target: str = "", start_frame: int = 0) -> dict:
+        """相机环绕运镜: 围绕目标旋转 (经典 AI 影视运镜)
+
+        Args:
+            start_angle/end_angle: 起始/结束角度 (度)
+            target: 目标对象名 (空 = 原点)
+        """
+        return blender.camera_orbit(radius, height, start_angle, end_angle,
+                                    frames, camera, target, start_frame)
+
+    @mcp.tool()
+    def camera_dolly(from_distance: float = 8.0, to_distance: float = 3.0,
+                     height: float = 2.0, frames: int = 90,
+                     camera: str = "Camera", target: str = "",
+                     start_frame: int = 0) -> dict:
+        """相机推拉: 沿视线前进/后退"""
+        return blender.camera_dolly(from_distance, to_distance, height, frames,
+                                    camera, target, start_frame)
+
+    @mcp.tool()
+    def animate_turntable(object_name: str, revolutions: int = 1,
+                          frames: int = 120, axis: str = "z") -> dict:
+        """转盘动画 (产品展示): 对象原地旋转 N 圈"""
+        return blender.animate_turntable(object_name, revolutions, frames, axis)
+
+    @mcp.tool()
+    def animate_float(object_name: str, height: float = 0.3,
+                      frames: int = 60) -> dict:
+        """漂浮动画: 对象在当前位置上下浮动 (sin 波)"""
+        return blender.animate_float(object_name, height, frames)
+
+    @mcp.tool()
+    def animate_appear(object_name: str, frame: int = 0,
+                       duration: int = 20, bounce: bool = True) -> dict:
+        """出现动画: scale 0→1 弹出 (可选弹跳)"""
+        return blender.animate_appear(object_name, frame, duration, bounce)
+
+    @mcp.tool()
+    def follow_path(object_name: str, path_name: str,
+                    frames: int = 120) -> dict:
+        """沿路径运动: 对象沿曲线路径移动"""
+        return blender.follow_path(object_name, path_name, frames)
+
+    # ═══════════════════════════════════════════════════════
     # 视觉层
     # ═══════════════════════════════════════════════════════
 
@@ -304,6 +450,59 @@ def register(mcp, blender: BlenderClient, screenshot_dir: str):
             return {"success": True, "filepath": filepath,
                     "width": width, "height": height}
         return {"success": False, "error": result.get("message", "截图失败")}
+
+    @mcp.tool()
+    def capture_animation_frames(frames: list = None, count: int = 5,
+                                 tag: str = "anim", width: int = 640,
+                                 height: int = 480) -> dict:
+        """多帧截图 — 动画视觉验证核心
+
+        在指定帧 (或时间轴均分 N 帧) 各截一张视口图,
+        返回文件路径列表供 AI 对比运动过程。
+
+        Args:
+            frames: 指定帧列表 (默认: 时间轴均分 count 帧)
+            count: 自动取帧数 (frames 为空时使用)
+        """
+        os.makedirs(screenshot_dir, exist_ok=True)
+        info = blender.get_frame_info()
+        if info.get("status") != "success":
+            return {"success": False, "error": info.get("message")}
+        finfo = info["result"]
+        start, end = finfo["start"], finfo["end"]
+
+        if frames:
+            frame_list = list(frames)
+        else:
+            frame_list = [start + int((end - start) * i / max(count - 1, 1))
+                          for i in range(count)]
+        frame_list = sorted(set(frame_list))
+
+        ts = datetime.now().strftime("%H%M%S")
+        paths = []
+        for i, f in enumerate(frame_list):
+            blender.set_frame(f)
+            fname = f"{tag}_{f:04d}_{ts}.png"
+            filepath = os.path.join(screenshot_dir, fname)
+            r = blender.get_screenshot(filepath, width, height)
+            if r.get("status") == "success":
+                paths.append({"frame": f, "filepath": filepath})
+        return {"success": True, "frames": paths, "count": len(paths),
+                "note": "用 Read 工具查看这些图片对比运动"}
+
+    @mcp.tool()
+    def render_animation(output_dir: str, start: int = None, end: int = None,
+                         engine: str = "eevee", resolution_x: int = 1280,
+                         resolution_y: int = 720, samples: int = 64) -> dict:
+        """渲染动画帧序列 (PNG) — 大操作
+
+        Args:
+            engine: eevee(快, 预览) | cycles(慢, 高质量)
+            samples: cycles 采样数
+        """
+        os.makedirs(output_dir, exist_ok=True)
+        return blender.render_animation(output_dir, start, end, engine,
+                                        resolution_x, resolution_y, samples)
 
     @mcp.tool()
     def export_blender_model(object_name: str, format: str = "fbx",

@@ -185,10 +185,12 @@ def _deferred_shutdown():
 
 
 def _dispatch(ctype, params):
-    """命令分发 — 所有命令处理器在 commands/macros 中"""
-    from . import commands, macros
+    """命令分发 — 处理器在 commands/animation/macros 中"""
+    from . import commands, animation, macros
 
     handler = getattr(commands, ctype, None)
+    if handler is None:
+        handler = getattr(animation, ctype, None)
     if handler is None:
         handler = getattr(macros, ctype, None)
     if handler is None:

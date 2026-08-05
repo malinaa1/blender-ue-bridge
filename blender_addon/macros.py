@@ -897,6 +897,230 @@ def build_medieval_house(params):
 
 
 # ─────────────────────────────────────────────────────────────
+# 相机与运镜宏 (AI 影视工作流核心)
+# ─────────────────────────────────────────────────────────────
+
+def camera_setup(params):
+    """创建相机 + 目标点 (空物体), 并设为活动相机
+
+    params:
+        location [x,y,z], target [x,y,z], fov (度, 默认 45),
+        name, target_name, lens_mm (焦距, 可选覆盖 fov)
+    """
+    from .animation import _get_object  # noqa: F401 (一致性)
+    bpy.ops.object.camera_add(location=tuple(params.get("location", [5, -5, 2])))
+    cam = bpy.context.active_object
+    cam.name = params.get("name", "Camera")
+    cam.data.lens = params.get("lens_mm", 35)
+    if params.get("fov"):
+        cam.data.angle = math.radians(params["fov"])
+
+    # 目标空物体
+    bpy.ops.object.empty_add(type="SPHERE",
+                             location=tuple(params.get("target", [0, 0, 1])))
+    target = bpy.context.active_object
+    target.name = params.get("target_name", f"{cam.name}_Target")
+    target.scale = (0.1, 0.1, 0.1)
+
+    # 相机跟踪目标
+    con = cam.constraints.new(type="TRACK_TO")
+    con.target = target
+    con.track_axis = "TRACK_NEGATIVE_Z"
+    con.up_axis = "UP_Y"
+
+    # 设为活动相机
+    bpy.context.scene.camera = cam
+
+    return {"camera": cam.name, "target": target.name,
+            "location": list(cam.location)}
+
+
+def _keyframe_camera(cam, frame, location):
+    cam.location = Vector(location)
+    cam.keyframe_insert(data_path="location", frame=frame)
+
+
+def camera_orbit(params):
+    """相机环绕运镜: 围绕目标旋转半圈/整圈
+
+    params:
+        camera (相机名), target (目标名或 [x,y,z]), radius,
+        start_angle, end_angle (度, 绕 Z 轴), frames (总帧数),
+        height (相机高度), interpolation
+    """
+    from .animation import _get_object, set_frame_range, set_frame
+    cam = _get_object(params.get("camera", "Camera"))
+    radius = params.get("radius", 8.0)
+    height = params.get("height", 2.0)
+    sa = math.radians(params.get("start_angle", 0))
+    ea = math.radians(params.get("end_angle", 360))
+    frames = int(params.get("frames", 120))
+    start_frame = int(params.get("start_frame", 0))
+    interp = params.get("interpolation", "bezier")
+
+    target_name = params.get("target")
+    if target_name and target_name in bpy.data.objects:
+        tgt = bpy.data.objects[target_name]
+        target_pos = tgt.location.copy()
+    else:
+        target_pos = Vector(params.get("target_pos", [0, 0, 1])) if not target_name else Vector([0, 0, 1])
+
+    # 沿圆弧插值相机位置关键帧 (每 15 度一个关键帧, BEZIER 平滑)
+    steps = max(8, int(abs(ea - sa) / (math.pi / 12)))
+    for i in range(steps + 1):
+        angle = sa + (ea - sa) * (i / steps)
+        frame = start_frame + int(frames * (i / steps))
+        pos = (target_pos.x + radius * math.cos(angle),
+               target_pos.y + radius * math.sin(angle),
+               height)
+        _keyframe_camera(cam, frame, pos)
+
+    # 设置插值模式
+    if cam.animation_data and cam.animation_data.action:
+        mode = {"bezier": "BEZIER", "linear": "LINEAR", "constant": "CONSTANT"}.get(interp, "BEZIER")
+        for fc in cam.animation_data.action.fcurves:
+            if fc.data_path == "location":
+                for kp in fc.keyframe_points:
+                    kp.interpolation = mode
+
+    set_frame_range({"start": start_frame, "end": start_frame + frames})
+    set_frame({"frame": start_frame})
+    return {"camera": cam.name, "orbit": f"{math.degrees(sa):.0f}°→{math.degrees(ea):.0f}°",
+            "frames": frames}
+
+
+def camera_dolly(params):
+    """相机推拉: 沿视线方向前进/后退
+
+    params: camera, target, from_distance, to_distance, frames, height
+    """
+    from .animation import _get_object, set_frame_range
+    cam = _get_object(params.get("camera", "Camera"))
+    radius_from = params.get("from_distance", 8.0)
+    radius_to = params.get("to_distance", 3.0)
+    height = params.get("height", 2.0)
+    frames = int(params.get("frames", 90))
+    start_frame = int(params.get("start_frame", 0))
+
+    target_name = params.get("target")
+    if target_name and target_name in bpy.data.objects:
+        tgt = bpy.data.objects[target_name]
+        tx, ty = tgt.location.x, tgt.location.y
+    else:
+        tx, ty = 0.0, 0.0
+
+    # 固定角度 (相机当前角度)
+    cur_angle = math.atan2(cam.location.y - ty, cam.location.x - tx)
+
+    for i, r in [(0, radius_from), (1, radius_to)]:
+        frame = start_frame + int(frames * i)
+        _keyframe_camera(cam, frame, (tx + r * math.cos(cur_angle),
+                                      ty + r * math.sin(cur_angle),
+                                      height))
+    set_frame_range({"start": start_frame, "end": start_frame + frames})
+    return {"camera": cam.name, "dolly": f"{radius_from}m→{radius_to}m",
+            "frames": frames}
+
+
+def animate_turntable(params):
+    """转盘动画 (产品展示): 相机固定, 对象绕 Z 轴旋转 N 圈
+
+    params: object_name, revolutions, frames, axis (z|x|y), start_frame
+    """
+    from .animation import _get_object, set_frame_range
+    obj = _get_object(params.get("object_name", ""))
+    revs = params.get("revolutions", 1)
+    frames = int(params.get("frames", 120))
+    start_frame = int(params.get("start_frame", 0))
+    axis = params.get("axis", "z").lower()
+    axis_idx = {"x": 0, "y": 1, "z": 2}[axis]
+
+    # 记录当前旋转, 动画到 +N 圈
+    cur = list(obj.rotation_euler)
+    cur[axis_idx] += revs * 2 * math.pi
+
+    obj.keyframe_insert(data_path="rotation_euler", frame=start_frame)
+    obj.rotation_euler = Euler(cur, "XYZ")
+    obj.keyframe_insert(data_path="rotation_euler", frame=start_frame + frames)
+
+    set_frame_range({"start": start_frame, "end": start_frame + frames})
+    return {"object": obj.name, "revolutions": revs, "axis": axis,
+            "frames": frames}
+
+
+def animate_float(params):
+    """漂浮动画 (sin 波): 对象在 base_z 附近上下浮动
+
+    params: object_name, height (浮动幅度), frames (周期), start_frame
+    """
+    from .animation import _get_object, set_frame_range
+    obj = _get_object(params.get("object_name", ""))
+    amp = params.get("height", 0.3)
+    frames = int(params.get("frames", 60))
+    start_frame = int(params.get("start_frame", 0))
+    base_z = obj.location.z
+
+    steps = 16
+    for i in range(steps + 1):
+        t = i / steps
+        frame = start_frame + int(frames * t)
+        obj.location.z = base_z + amp * math.sin(t * 2 * math.pi)
+        obj.keyframe_insert(data_path="location", frame=frame)
+
+    set_frame_range({"start": start_frame, "end": start_frame + frames * 2})
+    return {"object": obj.name, "amplitude": amp, "period": frames}
+
+
+def animate_appear(params):
+    """出现动画: 从 scale 0 弹出到全尺寸 (带弹跳)
+
+    params: object_name, frame, duration (帧), bounce (是否弹跳)
+    """
+    from .animation import _get_object, set_frame_range
+    obj = _get_object(params.get("object_name", ""))
+    frame = int(params.get("frame", 0))
+    duration = int(params.get("duration", 20))
+
+    obj.scale = (0.001, 0.001, 0.001)
+    obj.keyframe_insert(data_path="scale", frame=frame)
+    if params.get("bounce", True):
+        obj.scale = (1.15, 1.15, 1.15)
+        obj.keyframe_insert(data_path="scale", frame=frame + int(duration * 0.6))
+        obj.scale = (0.95, 0.95, 0.95)
+        obj.keyframe_insert(data_path="scale", frame=frame + int(duration * 0.85))
+    obj.scale = (1.0, 1.0, 1.0)
+    obj.keyframe_insert(data_path="scale", frame=frame + duration)
+
+    set_frame_range({"start": frame, "end": frame + duration + 10})
+    return {"object": obj.name, "frame": frame, "duration": duration}
+
+
+def follow_path(params):
+    """沿路径运动: 对象沿曲线路径移动 (Follow Path 约束)
+
+    params: object_name, path_name (曲线对象), frames, start_frame
+    """
+    from .animation import _get_object, add_constraint, set_frame_range
+    obj = _get_object(params.get("object_name", ""))
+    path = _get_object(params.get("path_name", ""))
+    if path.type != "CURVE":
+        raise ValueError(f"路径必须是曲线对象: {path.name}")
+    frames = int(params.get("frames", 120))
+    start_frame = int(params.get("start_frame", 0))
+
+    add_constraint({"name": obj.name, "constraint": "follow_path",
+                    "target": path.name, "constraint_name": "FollowPath"})
+    con = obj.constraints["FollowPath"]
+    con.offset = 0.0
+    con.keyframe_insert(data_path="offset", frame=start_frame)
+    con.offset = frames
+    con.keyframe_insert(data_path="offset", frame=start_frame + frames)
+
+    set_frame_range({"start": start_frame, "end": start_frame + frames})
+    return {"object": obj.name, "path": path.name, "frames": frames}
+
+
+# ─────────────────────────────────────────────────────────────
 # 导出
 # ─────────────────────────────────────────────────────────────
 
