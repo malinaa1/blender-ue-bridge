@@ -1151,39 +1151,38 @@ def create_turtle_shell(params):
 
     # bmesh: 删下半球, 顶面鳞片凸起, 底部裙边
     _select_only(shell)
-    bpy.ops.object.mode_set(mode="EDIT")
-    bm = _bm.from_edit_mesh(shell.data)
-    bm.normal_update()
+    try:
+        bpy.ops.object.mode_set(mode="EDIT")
+        bm = _bm.from_edit_mesh(shell.data)
+        bm.normal_update()
 
-    # 1. 删除 z<0 的顶点 (留半球)
-    remove = [v for v in bm.verts if v.co.z < 0.001]
-    _bm.ops.delete(bm, geom=remove, context="VERTS")
-    bm.verts.ensure_lookup_table()
+        # 1. 删除 z<0 的顶点 (留半球)
+        remove = [v for v in bm.verts if v.co.z < 0.001]
+        _bm.ops.delete(bm, geom=remove, context="VERTS")
+        bm.verts.ensure_lookup_table()
 
-    # 2. 顶面鳞片: 选 z > 40% 高的面, inset + 两次挤出 (凸块)
-    max_z = max(v.co.z for v in bm.verts)
-    top_faces = [f for f in bm.faces if f.calc_center_median().z > max_z * 0.4]
-    if top_faces:
-        _bm.ops.inset_region(bm, faces=top_faces, thickness=0.03, depth=0,
-                             use_individual=True)
-        _bm.ops.inset_region(bm, faces=top_faces, thickness=0.012, depth=0.02,
-                             use_individual=True)
-        for f in top_faces:
-            f.normal_update()
+        # 2. 顶面鳞片: 选 z > 40% 高的面, inset + 两次挤出 (凸块)
+        max_z = max(v.co.z for v in bm.verts)
+        top_faces = [f for f in bm.faces if f.calc_center_median().z > max_z * 0.4]
+        if top_faces:
+            _bm.ops.inset_region(bm, faces=top_faces, thickness=0.03, depth=0)
+            _bm.ops.inset_region(bm, faces=top_faces, thickness=0.012, depth=0.02)
+            for f in top_faces:
+                f.normal_update()
 
-    # 3. 底部裙边: 选边缘环, 挤出外扩
-    boundary = [e for e in bm.edges if e.is_boundary]
-    if boundary:
-        r = _bm.ops.extrude_edge_only(bm, edges=boundary)
-        new_edges = [e for e in r["edges"]]
-        for e in new_edges:
-            mid = (e.verts[0].co + e.verts[1].co) / 2
-            for v in e.verts:
-                v.co = v.co * 1.15 + (0, 0, 0.02)
+        # 3. 底部裙边: 选边缘环, 挤出外扩
+        boundary = [e for e in bm.edges if e.is_boundary]
+        if boundary:
+            r = _bm.ops.extrude_edge_only(bm, edges=boundary)
+            new_edges = [e for e in r["edges"]]
+            for e in new_edges:
+                for v in e.verts:
+                    v.co = v.co * 1.15 + (0, 0, 0.02)
 
-    bm.normal_update()
-    _bm.update_edit_mesh(shell.data)
-    bpy.ops.object.mode_set(mode="OBJECT")
+        bm.normal_update()
+        _bm.update_edit_mesh(shell.data)
+    finally:
+        bpy.ops.object.mode_set(mode="OBJECT")
 
     # 4. 圆润处理
     _bevel(shell, width=0.015, segments=1)
@@ -1211,11 +1210,14 @@ def create_cute_eye(params):
     scale = params.get("scale", 1.0)
     name = params.get("name", "Eye")
 
+    if bpy.context.object and bpy.context.object.mode != "OBJECT":
+        bpy.ops.object.mode_set(mode="OBJECT")
     # 白眼球 (椭球)
     bpy.ops.mesh.primitive_uv_sphere_add(radius=0.16 * scale, location=tuple(loc))
     eye = bpy.context.active_object
     eye.name = name
     eye.scale = (1.0, 1.0, 1.15)
+    _select_only(eye)
     bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
     _pbr(eye, "M_Eye_White", base=(0.98, 0.98, 1.0, 1.0), roughness=0.1)
 
@@ -1225,6 +1227,7 @@ def create_cute_eye(params):
     pupil = bpy.context.active_object
     pupil.name = f"{name}_Pupil"
     pupil.scale = (0.7, 0.75, 0.75)
+    _select_only(pupil)
     bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
     _pbr(pupil, "M_Eye_Pupil", base=(0.08, 0.08, 0.1, 1.0), roughness=0.05,
          emission=(0.05, 0.05, 0.08), emission_strength=0.5)

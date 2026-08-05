@@ -14,6 +14,9 @@ from mcp_server.blender_client import BlenderClient
 from mcp_server.ue_client import UEClient
 from mcp_server.asset_pipeline import AssetPipeline
 
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+
 BRIDGE_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PASS = 0
 FAIL = 0

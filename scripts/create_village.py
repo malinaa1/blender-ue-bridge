@@ -21,6 +21,9 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from mcp_server.blender_client import BlenderClient
 
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+
 BRIDGE_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # UE 项目 Content 目录 — 通过环境变量 UE_CONTENT_DIR 指定 (例如 D:/UE5Projects/MyGame/Content)
 UE_CONTENT = os.environ.get("UE_CONTENT_DIR", "")

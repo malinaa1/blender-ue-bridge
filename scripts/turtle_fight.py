@@ -113,7 +113,7 @@ def build_turtle(blender):
                               depth=0.09, location=[0.88, 0, 0.62])
     blender.set_transform("Turtle_Mouth", scale=[1.0, 1.0, 0.4],
                           rotation=[0, 0.5, 0])
-    step(blender, "微笑嘴")
+    step(blender, "微笑嘴", r)
 
     # 细分曲面 + 倒角 (整体圆润)
     for part in ["Turtle_Body", "Turtle_Head"]:
@@ -356,6 +356,8 @@ def render_verify(blender, do_render):
 
 
 def main():
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     blender = BlenderClient()
     print(f"Blender 连接: {'✅' if blender.ping() else '❌'}")
     if not blender.ping():

@@ -37,6 +37,8 @@ def ok(result, label):
 
 
 def main():
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     blender = BlenderClient()
     print(f"Blender 连接: {'✅' if blender.ping() else '❌ 请先启动 Blender 并启用插件'}")
     if not blender.ping():
