@@ -60,7 +60,7 @@ def ensure_running():
 
 
 def shutdown():
-    global _server_sock
+    global _server_sock, _timer_registered
     if _server_sock is not None:
         try:
             _server_sock.close()
@@ -72,6 +72,7 @@ def shutdown():
             bpy.app.timers.unregister(_tick)
         except ValueError:
             pass
+        _timer_registered = False  # 关键: 重置标志, 否则重载后 timer 不再注册
 
 
 # ── 接受循环 ──────────────────────────────────────────────
