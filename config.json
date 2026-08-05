@@ -1,0 +1,29 @@
+{
+  "blender": {
+    "host": "127.0.0.1",
+    "port": 9876,
+    "timeout": 30
+  },
+  "unreal": {
+    "host": "127.0.0.1",
+    "port": 55557,
+    "timeout": 30,
+    "large_timeout": 300,
+    "content_dir": "D:/MOD/ue-project/Content"
+  },
+  "shared_assets": {
+    "base_dir": "",
+    "models_dir": "",
+    "textures_dir": "",
+    "materials_dir": ""
+  },
+  "export": {
+    "default_format": "fbx",
+    "texture_resolution": 2048,
+    "bake_engine": "CYCLES"
+  },
+  "_notes": {
+    "shared_assets.base_dir": "留空则默认使用项目内 shared_assets/，可用环境变量 BRIDGE_SHARED_DIR 覆盖",
+    "unreal.content_dir": "UE 项目 Content 目录，可用环境变量 UE_CONTENT_DIR 覆盖（多项目支持）"
+  }
+}
